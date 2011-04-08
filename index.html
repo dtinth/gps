@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head><title>GPS Tracker</title><meta charset="utf-8">
+<style>
+	input, textarea { -webkit-box-sizing: border-box; }
+	input { width: 100%; font-size: 20px; }
+	textarea { width: 100%; height: 500px; }
+	input[type="button"],
+	input[type="submit"] { width: 24%; }
+	body { text-align: center; }
+</style>
+<body>
+<form action="" method="post">
+	<input name="t_action" value="http://192.168.1.64/gps/save.php">
+	<textarea readonly name="coords"></textarea>
+	<input value="Start Tracking" type="button" onclick="startTracking();this.disabled=true;">
+	<input value="Reset Trip" type="button" onclick="resetTrip();">
+	<input value="Use Server" type="button" onclick="this.form.t_action.value = 'savetrip.php';">
+	<input type="submit" onclick="this.form.action = this.form.t_action.value;">
+</form>
+<script>
+var ta = document.querySelector('textarea');
+var lt = 0;
+var ls = false;
+var track = false;
+(function() {
+	var tr = localStorage.getItem('trip');
+	if (tr != '' && tr != null) {
+		ta.value = tr + '\n';
+	}
+})();
+function addHeader() {
+	ta.value += '-- tracking started: ' + (new Date().toString()) + '\n';
+	ta.value += (new Date().getTime()) + ' // start\n';
+	localStorage.setItem('trip', ta.value);
+}
+function resetTrip() {
+	if (!confirm('Are you sure you want to clear your trip?'))
+		return false;
+	localStorage.setItem('trip', '');
+	ta.value = '';
+	addHeader();
+}
+function startTracking() {
+	track = true;
+	addHeader();
+	navigator.geolocation.watchPosition(
+		function(position) {
+			var now = new Date().getTime();
+			if (ls != 1 || now - lt > 10000) {
+				ta.value += now + ' // ' + position.coords.latitude + ' // ' + position.coords.longitude + '\n';
+				localStorage.setItem('trip', ta.value);
+				lt = now;
+				ls = 1;
+			}
+		},
+		function() {
+			var now = new Date().getTime();
+			if (ls != 0 || now - lt > 10000) {
+				ta.value += now + ' // fail\n';
+				localStorage.setItem('trip', ta.value);
+				lt = now;
+				ls = 0;
+			}
+		},
+		{
+			enableHighAccuracy: true,
+			maximumAge: 60000,
+			timeout: 15000
+		}
+	);
+}
+</script>
+</body>
